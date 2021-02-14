@@ -4,7 +4,7 @@ description         : >-
                       I turn coffee :coffee: into code,
                       use tabs over spaces
                       and never broke production.
-baseurl             : "/portfolYOU"                     # Change to empty quotes if you are hosting your site at <your-username>.github.io directly
+baseurl             : ""                     # Change to empty quotes if you are hosting your site at <your-username>.github.io directly
 repository          : YoussefRaafatNasry/portfolYOU     # Change to <your-username>/<your-username>.github.io (or remove it if you don't need remote projects)
 remote_theme        : YoussefRaafatNasry/portfolYOU
 
@@ -24,8 +24,8 @@ nav_exclude:                                            # The following paths ar
 ### Author Info ###
 author:
   name              : Sathish
-  image             : https://i.imgur.com/uyDNQnn.jpg
-  behance           : your_username
+  image             : sathish.jpg
+#  behance           : your_username
 # dribbble          : your_username
   email             : username@domain.com
   facebook          : your_username
