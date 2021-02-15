@@ -1,6 +1,14 @@
 [
   
     {
+      "title"    : "Operating system",
+      "category" : "",
+      "tags"     : "Systems, Technology",
+      "url"      : "/blog/OS",
+      "date"     : "2021-02-15 00:00:00 +0530"
+    } ,
+  
+    {
       "title"    : "Digital Minimalism",
       "category" : "",
       "tags"     : "Social Media, Minimalism, Technology",
