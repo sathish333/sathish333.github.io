@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+
+<!--
+  portfolYOU Jekyll theme by Youssef Raafat
+  Free for personal and commercial use under the MIT license
+  https://github.com/YoussefRaafatNasry/portfolYOU
+-->
+
+<html lang="en" class="h-100">
+
+<head>
+
+  
+  
+
+  
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Human Activity Recognition">
+  <meta property="og:description" content="Predciting human activity based sensor readings.">
+
+  <title>Human Activity Recognition</title>
+  <meta name="description" content="Predciting human activity based sensor readings.">
+
+  
+  <link rel="shortcut icon" type="image/x-icon" href="/assets/favicon.ico">
+
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.10.0/css/all.css">
+
+  <!-- Bootstrap CSS CDN -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+  <!-- Animate CSS CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.css" type="text/css"/>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/assets/css/style.css" type="text/css">
+
+</head>
+
+
+<body class="d-flex flex-column h-100">
+
+  <main class="flex-shrink-0 container mt-5">
+  <nav class="navbar navbar-expand-lg navbar-light">
+
+  <a class="navbar-brand" href="/"><h5><b>SushiByte</b></h5></a>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+    <div class="navbar-nav ml-auto"><a class="nav-item nav-link active" href="/projects/">Projects</a>
+
+      <a class="nav-item nav-link " href="/blog/">Blog</a>
+
+      <a class="nav-item nav-link " href="/about/">About</a>
+
+      
+
+    </div>
+  </div>
+
+</nav>
+  <div class="col-lg-10 mx-auto mt-5 post">
+  <h1 id="humanactivityrecognition">HumanActivityRecognition</h1>
+
+<p><br /></p>
+
+<p>This project is to build a model that predicts the human activities such as Walking, Walking_Upstairs, Walking_Downstairs, Sitting, Standing or Laying.</p>
+
+<p>This dataset is collected from 30 persons(referred as subjects in this dataset), performing different activities with a smartphone to their waists. The data is recorded with the help of sensors (accelerometer and Gyroscope) in that smartphone. This experiment was video recorded to label the data manually.</p>
+
+<h2 id="how-data-was-recorded">How data was recorded</h2>
+
+<p>By using the sensors(Gyroscope and accelerometer) in a smartphone, they have captured ‘3-axial linear acceleration’(<em>tAcc-XYZ</em>) from accelerometer and ‘3-axial angular velocity’ (<em>tGyro-XYZ</em>) from Gyroscope with several variations.</p>
+
+<h1 id="quick-overview-of-the-dataset-">Quick overview of the dataset :</h1>
+
+<ul>
+  <li>
+    <p>Accelerometer and Gyroscope readings are taken from 30 volunteers(referred as subjects) while performing the following 6 Activities.</p>
+
+    <ol>
+      <li>Walking</li>
+      <li>WalkingUpstairs</li>
+      <li>WalkingDownstairs</li>
+      <li>Standing</li>
+      <li>Sitting</li>
+      <li>Lying.</li>
+    </ol>
+  </li>
+  <li>
+    <p>Readings are divided into a window of 2.56 seconds with 50% overlapping.</p>
+  </li>
+  <li>
+    <p>Accelerometer readings are divided into gravity acceleration and body acceleration readings,
+which has x,y and z components each.</p>
+  </li>
+  <li>
+    <p>Gyroscope readings are the measure of angular velocities which has x,y and z components.</p>
+  </li>
+  <li>
+    <p>Jerk signals are calculated for BodyAcceleration readings.</p>
+  </li>
+  <li>
+    <p>Fourier Transforms are made on the above time readings to obtain frequency readings.</p>
+  </li>
+  <li>
+    <p>Now, on all the base signal readings., mean, max, mad, sma, arcoefficient, engerybands,entropy etc., are calculated for each window.</p>
+  </li>
+  <li>
+    <p>We get a feature vector of 561 features and these features are given in the dataset.</p>
+  </li>
+  <li>
+    <p>Each window of readings is a datapoint of 561 features.</p>
+  </li>
+</ul>
+
+<h2 id="problem-framework">Problem Framework</h2>
+
+<ul>
+  <li>30 subjects(volunteers) data is randomly split to 70%(21) test and 30%(7) train data.</li>
+  <li>Each datapoint corresponds one of the 6 Activities.</li>
+</ul>
+
+<h2 id="problem-statement">Problem Statement</h2>
+
+<ul>
+  <li>Given a new datapoint we have to predict the Activity</li>
+</ul>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Importing cool stuff
+</span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="c1">#from skorch import NeuralNetClassifier
+</span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="n">nn</span> 
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="n">F</span>
+<span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="n">device</span><span class="p">(</span><span class="s">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="p">.</span><span class="n">cuda</span><span class="p">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s">"cpu"</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">TensorDataset</span><span class="p">,</span> <span class="n">DataLoader</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span><span class="p">,</span><span class="n">classification_report</span><span class="p">,</span><span class="n">confusion_matrix</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="n">sns</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="n">warnings</span><span class="p">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s">'ignore'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="helper-functions">Helper functions</h2>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Utility function to read the data from csv file
+</span><span class="k">def</span> <span class="nf">_read_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="p">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+
+<span class="c1"># Utility function to load the load
+</span><span class="k">def</span> <span class="nf">load_signals</span><span class="p">(</span><span class="n">subset</span><span class="p">):</span>
+    <span class="n">signals_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">signal</span> <span class="ow">in</span> <span class="n">SIGNALS</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s">'UCI_HAR_Dataset/</span><span class="si">{</span><span class="n">subset</span><span class="si">}</span><span class="s">/Inertial Signals/</span><span class="si">{</span><span class="n">signal</span><span class="si">}</span><span class="s">_</span><span class="si">{</span><span class="n">subset</span><span class="si">}</span><span class="s">.txt'</span>
+        <span class="n">signals_data</span><span class="p">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">_read_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">).</span><span class="n">values</span>
+        <span class="p">)</span> 
+
+    <span class="c1"># Transpose is used to change the dimensionality of the output,
+</span>    <span class="c1"># aggregating the signals by combination of sample/timestep.
+</span>    <span class="c1"># Resultant shape is (7352 train/2947 test samples, 128 timesteps, 9 signals)
+</span>    <span class="k">return</span> <span class="n">np</span><span class="p">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">signals_data</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">def</span> <span class="nf">load_y</span><span class="p">(</span><span class="n">subset</span><span class="p">):</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s">'UCI_HAR_Dataset/</span><span class="si">{</span><span class="n">subset</span><span class="si">}</span><span class="s">/y_</span><span class="si">{</span><span class="n">subset</span><span class="si">}</span><span class="s">.txt'</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">_read_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">load_data</span><span class="p">():</span>
+    <span class="s">"""
+    Obtain the dataset from multiple files.
+    Returns: X_train, X_test, y_train, y_test
+    """</span>
+    <span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span> <span class="o">=</span> <span class="n">load_signals</span><span class="p">(</span><span class="s">'train'</span><span class="p">),</span> <span class="n">load_signals</span><span class="p">(</span><span class="s">'test'</span><span class="p">)</span>
+    <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">load_y</span><span class="p">(</span><span class="s">'train'</span><span class="p">),</span> <span class="n">load_y</span><span class="p">(</span><span class="s">'test'</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span>
+</code></pre></div></div>
+
+<h3 id="loading-data">Loading Data</h3>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Data directory
+</span><span class="n">DATADIR</span> <span class="o">=</span> <span class="s">'UCI_HAR_Dataset'</span>
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Raw data signals
+# Signals are from Accelerometer and Gyroscope
+# The signals are in x,y,z directions
+# Sensor signals are filtered to have only body acceleration
+# excluding the acceleration due to gravity
+# Triaxial acceleration from the accelerometer is total acceleration
+</span><span class="n">SIGNALS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">"body_acc_x"</span><span class="p">,</span>
+    <span class="s">"body_acc_y"</span><span class="p">,</span>
+    <span class="s">"body_acc_z"</span><span class="p">,</span>
+    <span class="s">"body_gyro_x"</span><span class="p">,</span>
+    <span class="s">"body_gyro_y"</span><span class="p">,</span>
+    <span class="s">"body_gyro_z"</span><span class="p">,</span>
+    <span class="s">"total_acc_x"</span><span class="p">,</span>
+    <span class="s">"total_acc_y"</span><span class="p">,</span>
+    <span class="s">"total_acc_z"</span>
+<span class="p">]</span>
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Loading the train and test data
+</span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">Y_test</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">()</span>
+<span class="n">Y_train</span><span class="o">=</span><span class="n">Y_train</span><span class="o">-</span><span class="mi">1</span> <span class="c1">#to convert from 1-6 range to 0-5 range
+</span><span class="n">Y_test</span><span class="o">=</span><span class="n">Y_test</span><span class="o">-</span><span class="mi">1</span>
+<span class="n">X_train</span><span class="p">.</span><span class="n">shape</span><span class="p">,</span><span class="n">Y_train</span><span class="p">.</span><span class="n">shape</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>((7352, 128, 9), (7352,))
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">timesteps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">input_dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">n_classes</span> <span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">unique</span><span class="p">(</span><span class="n">Y_train</span><span class="p">))</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'time steps :'</span><span class="p">,</span><span class="n">timesteps</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'input dimesnsions :'</span><span class="p">,</span><span class="n">input_dim</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'number of train data points : '</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">))</span>
+
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>time steps : 128
+input dimesnsions : 9
+number of train data points :  7352
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="c1">#converting into tensor dataset
+</span><span class="n">train_data</span> <span class="o">=</span> <span class="n">TensorDataset</span><span class="p">(</span><span class="n">torch</span><span class="p">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_train</span><span class="p">),</span> <span class="n">torch</span><span class="p">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_train</span><span class="p">))</span>
+<span class="n">test_data</span> <span class="o">=</span> <span class="n">TensorDataset</span><span class="p">(</span><span class="n">torch</span><span class="p">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_test</span><span class="p">),</span> <span class="n">torch</span><span class="p">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_test</span><span class="p">))</span>
+
+<span class="c1"># dataloaders
+</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span><span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<h1 id="building-lstm-model--1">Building LSTM Model -1</h1>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Net</span><span class="p">(</span><span class="n">nn</span><span class="p">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hidden_size</span><span class="p">,</span><span class="n">num_layers</span><span class="p">,</span><span class="n">drop_out</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">().</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="p">.</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">dense</span><span class="o">=</span><span class="n">nn</span><span class="p">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">dropout</span><span class="o">=</span><span class="n">nn</span><span class="p">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">drop_out</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">hidden</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">,</span><span class="n">hidden</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">[:,</span><span class="o">-</span><span class="mi">1</span><span class="p">,:]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">.</span><span class="n">contiguous</span><span class="p">().</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span><span class="p">)</span> <span class="c1"># stack up lstm outputs
+</span>        <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">dense</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+    
+    
+    <span class="k">def</span> <span class="nf">init_hidden</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">num_layers</span><span class="p">,</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span><span class="p">).</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span><span class="n">torch</span><span class="p">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">num_layers</span><span class="p">,</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span><span class="p">).</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hidden</span>
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#model initialization
+</span><span class="n">hidden_size</span><span class="o">=</span><span class="mi">32</span>
+<span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span>
+<span class="n">drop_out</span><span class="o">=</span><span class="mf">0.5</span>
+<span class="n">net</span><span class="o">=</span><span class="n">Net</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span><span class="n">num_layers</span><span class="p">,</span><span class="n">drop_out</span><span class="p">)</span>
+<span class="n">net</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">lr</span><span class="o">=</span><span class="mf">0.005</span>
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="p">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="n">optim</span><span class="p">.</span><span class="n">RMSprop</span><span class="p">(</span><span class="n">net</span><span class="p">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="training-the-model">Training the Model</h2>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">epochs</span><span class="o">=</span><span class="mi">30</span>
+<span class="n">best_accuracy</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">y_pred</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">y_true</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+    <span class="n">train_loss</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">val_loss</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">net</span><span class="p">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">y_true</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">net</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">net</span><span class="p">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">loss</span><span class="p">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="p">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="n">train_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span><span class="n">pred</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">train_loss</span><span class="o">=</span><span class="n">train_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+    <span class="n">train_accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+    <span class="n">net</span><span class="p">.</span><span class="nb">eval</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">y_true</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">hidden</span><span class="o">=</span><span class="n">net</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">val_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+            <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">val_loss</span><span class="o">=</span><span class="n">val_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+        <span class="n">val_accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">best_accuracy</span> <span class="o">&lt;</span> <span class="n">val_accuracy</span><span class="p">:</span>
+            <span class="n">torch</span><span class="p">.</span><span class="n">save</span><span class="p">(</span><span class="n">net</span><span class="p">,</span><span class="s">'har.pth'</span><span class="p">)</span>
+            <span class="n">best_accuracy</span><span class="o">=</span><span class="n">val_accuracy</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'epoch:{:2} train loss:{:10.6f} train accuracy:{:6.2f} test loss:{:10.6f} val accuracy: {:6.2f}'</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">train_loss</span><span class="p">,</span><span class="n">train_accuracy</span><span class="p">,</span><span class="n">val_loss</span><span class="p">,</span><span class="n">val_accuracy</span><span class="p">))</span>
+
+
+        
+    
+        
+        
+    
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>epoch: 1 train loss:  1.324476 train accuracy:  0.42 test loss:  1.213630 val accuracy:   0.48
+epoch: 2 train loss:  0.872796 train accuracy:  0.60 test loss:  0.811300 val accuracy:   0.65
+epoch: 3 train loss:  0.693934 train accuracy:  0.69 test loss:  0.784192 val accuracy:   0.68
+epoch: 4 train loss:  0.589816 train accuracy:  0.75 test loss:  0.797140 val accuracy:   0.67
+epoch: 5 train loss:  0.595977 train accuracy:  0.78 test loss:  0.552498 val accuracy:   0.81
+epoch: 6 train loss:  0.468460 train accuracy:  0.83 test loss:  0.640501 val accuracy:   0.79
+epoch: 7 train loss:  0.388672 train accuracy:  0.86 test loss:  0.486402 val accuracy:   0.85
+epoch: 8 train loss:  0.335186 train accuracy:  0.88 test loss:  0.451101 val accuracy:   0.85
+epoch: 9 train loss:  0.305061 train accuracy:  0.89 test loss:  0.387480 val accuracy:   0.87
+epoch:10 train loss:  0.230853 train accuracy:  0.92 test loss:  0.466579 val accuracy:   0.86
+epoch:11 train loss:  0.254533 train accuracy:  0.91 test loss:  0.427815 val accuracy:   0.88
+epoch:12 train loss:  0.245500 train accuracy:  0.92 test loss:  0.368449 val accuracy:   0.86
+epoch:13 train loss:  0.190924 train accuracy:  0.93 test loss:  0.416491 val accuracy:   0.87
+epoch:14 train loss:  0.182639 train accuracy:  0.94 test loss:  0.359438 val accuracy:   0.89
+epoch:15 train loss:  0.193191 train accuracy:  0.94 test loss:  0.343162 val accuracy:   0.89
+epoch:16 train loss:  0.199731 train accuracy:  0.93 test loss:  0.317811 val accuracy:   0.88
+epoch:17 train loss:  0.158505 train accuracy:  0.94 test loss:  0.341826 val accuracy:   0.89
+epoch:18 train loss:  0.215404 train accuracy:  0.93 test loss:  0.410098 val accuracy:   0.88
+epoch:19 train loss:  0.158758 train accuracy:  0.95 test loss:  0.541238 val accuracy:   0.84
+epoch:20 train loss:  0.144741 train accuracy:  0.95 test loss:  0.365838 val accuracy:   0.89
+epoch:21 train loss:  0.152419 train accuracy:  0.95 test loss:  0.411111 val accuracy:   0.89
+epoch:22 train loss:  0.237154 train accuracy:  0.94 test loss:  0.399992 val accuracy:   0.87
+epoch:23 train loss:  0.151714 train accuracy:  0.95 test loss:  0.392775 val accuracy:   0.88
+epoch:24 train loss:  0.141980 train accuracy:  0.95 test loss:  0.336273 val accuracy:   0.89
+epoch:25 train loss:  0.144436 train accuracy:  0.95 test loss:  0.422562 val accuracy:   0.88
+epoch:26 train loss:  0.161758 train accuracy:  0.95 test loss:  0.391417 val accuracy:   0.90
+epoch:27 train loss:  0.175759 train accuracy:  0.95 test loss:  0.437056 val accuracy:   0.89
+epoch:28 train loss:  0.135313 train accuracy:  0.95 test loss:  0.428258 val accuracy:   0.90
+epoch:29 train loss:  0.133035 train accuracy:  0.95 test loss:  0.399176 val accuracy:   0.90
+epoch:30 train loss:  0.138583 train accuracy:  0.95 test loss:  0.367444 val accuracy:   0.90
+</code></pre></div></div>
+
+<h2 id="evaluating-the-model">Evaluating the model</h2>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#evaulation using best model
+</span><span class="n">net</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="s">'har.pth'</span><span class="p">)</span>
+<span class="n">y_pred</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">y_true</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">net</span><span class="p">.</span><span class="nb">eval</span><span class="p">()</span>
+<span class="n">net</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">test_loss</span><span class="o">=</span><span class="mi">0</span>
+
+<span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">net</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">test_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+        <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">test_loss</span><span class="o">/=</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'log loss of test data: '</span><span class="p">,</span><span class="n">np</span><span class="p">.</span><span class="nb">round</span><span class="p">(</span><span class="n">test_loss</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'accuracy of test data:'</span><span class="p">,</span><span class="n">np</span><span class="p">.</span><span class="nb">round</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s">'LAYING'</span><span class="p">,</span><span class="s">'SITTING'</span><span class="p">,</span><span class="s">'STANDING'</span><span class="p">,</span><span class="s">'WALKING'</span><span class="p">,</span><span class="s">'WALKING_DOWNSTAIRS'</span><span class="p">,</span><span class="s">'WALKING_UPSTAIRS'</span><span class="p">]</span>
+<span class="n">cf</span><span class="o">=</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">7</span><span class="p">))</span>
+<span class="n">sns</span><span class="p">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">"Blues"</span><span class="p">,</span><span class="n">xticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span><span class="n">yticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s">'g'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">title</span><span class="p">(</span><span class="s">'confusion matrix'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'predicted'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'actual'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>log loss of test data:  0.3914
+accuracy of test data: 0.9
+</code></pre></div></div>
+
+<p><img src="/img/output_19_1.png" alt="png" /></p>
+
+<h1 id="building-lstm-model--2">Building LSTM Model -2</h1>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">nn</span><span class="p">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">hidden_size</span><span class="p">,</span><span class="n">num_layers</span><span class="p">,</span><span class="n">drop_out</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">().</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="p">.</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">dense</span><span class="o">=</span><span class="n">nn</span><span class="p">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">dense2</span><span class="o">=</span><span class="n">nn</span><span class="p">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">dropout</span><span class="o">=</span><span class="n">nn</span><span class="p">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">drop_out</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">dout</span><span class="o">=</span><span class="n">nn</span><span class="p">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.3</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">hidden</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">,</span><span class="n">hidden</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">[:,</span><span class="o">-</span><span class="mi">1</span><span class="p">,:]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">.</span><span class="n">contiguous</span><span class="p">().</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span><span class="p">)</span> <span class="c1"># stack up lstm outputs
+</span>        <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">dense</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">dout</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="p">.</span><span class="n">dense2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+    
+    
+    <span class="k">def</span> <span class="nf">init_hidden</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">num_layers</span><span class="p">,</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span><span class="p">).</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span><span class="n">torch</span><span class="p">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">num_layers</span><span class="p">,</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="p">.</span><span class="n">hidden_size</span><span class="p">).</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hidden</span>
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#model initialization
+</span><span class="n">hidden_size</span><span class="o">=</span><span class="mi">100</span>
+<span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span>
+<span class="n">drop_out</span><span class="o">=</span><span class="mf">0.5</span>
+<span class="n">model</span><span class="o">=</span><span class="n">Model</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span><span class="n">num_layers</span><span class="p">,</span><span class="n">drop_out</span><span class="p">)</span>
+<span class="n">model</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">lr</span><span class="o">=</span><span class="mf">0.005</span>
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="p">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="n">optim</span><span class="p">.</span><span class="n">RMSprop</span><span class="p">(</span><span class="n">model</span><span class="p">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">epochs</span><span class="o">=</span><span class="mi">30</span>
+<span class="n">best_accuracy</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">y_pred</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">y_true</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+    <span class="n">train_loss</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">val_loss</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">model</span><span class="p">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">y_true</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">model</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">model</span><span class="p">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">loss</span><span class="p">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="p">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="n">train_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span><span class="n">pred</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">train_loss</span><span class="o">=</span><span class="n">train_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+    <span class="n">train_accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+    <span class="n">model</span><span class="p">.</span><span class="nb">eval</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">y_true</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">hidden</span><span class="o">=</span><span class="n">model</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">val_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+            <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">val_loss</span><span class="o">=</span><span class="n">val_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+        <span class="n">val_accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">best_accuracy</span> <span class="o">&lt;</span> <span class="n">val_accuracy</span><span class="p">:</span>
+            <span class="n">torch</span><span class="p">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="p">,</span><span class="s">'har2.pth'</span><span class="p">)</span>
+            <span class="n">best_accuracy</span><span class="o">=</span><span class="n">val_accuracy</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'epoch:{:2} train loss:{:10.6f} train accuracy:{:6.2f} test loss:{:10.6f} val accuracy: {:6.2f}'</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">train_loss</span><span class="p">,</span><span class="n">train_accuracy</span><span class="p">,</span><span class="n">val_loss</span><span class="p">,</span><span class="n">val_accuracy</span><span class="p">))</span>
+
+
+        
+    
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>epoch: 1 train loss:  1.482649 train accuracy:  0.37 test loss:  1.322458 val accuracy:   0.50
+epoch: 2 train loss:  1.312788 train accuracy:  0.46 test loss:  1.320044 val accuracy:   0.47
+epoch: 3 train loss:  1.282552 train accuracy:  0.45 test loss:  1.242504 val accuracy:   0.45
+epoch: 4 train loss:  0.958196 train accuracy:  0.57 test loss:  0.854092 val accuracy:   0.61
+epoch: 5 train loss:  0.813683 train accuracy:  0.64 test loss:  0.960151 val accuracy:   0.68
+epoch: 6 train loss:  0.585036 train accuracy:  0.75 test loss:  0.592570 val accuracy:   0.71
+epoch: 7 train loss:  0.433435 train accuracy:  0.83 test loss:  1.001910 val accuracy:   0.79
+epoch: 8 train loss:  0.392434 train accuracy:  0.85 test loss:  0.669312 val accuracy:   0.84
+epoch: 9 train loss:  0.316371 train accuracy:  0.90 test loss:  0.678665 val accuracy:   0.73
+epoch:10 train loss:  0.520638 train accuracy:  0.81 test loss:  0.513204 val accuracy:   0.82
+epoch:11 train loss:  0.286757 train accuracy:  0.90 test loss:  0.435290 val accuracy:   0.87
+epoch:12 train loss:  0.211122 train accuracy:  0.93 test loss:  0.381388 val accuracy:   0.89
+epoch:13 train loss:  0.235413 train accuracy:  0.92 test loss:  0.394710 val accuracy:   0.89
+epoch:14 train loss:  0.169838 train accuracy:  0.94 test loss:  0.373214 val accuracy:   0.91
+epoch:15 train loss:  0.208915 train accuracy:  0.93 test loss:  0.514612 val accuracy:   0.90
+epoch:16 train loss:  0.168681 train accuracy:  0.94 test loss:  0.574375 val accuracy:   0.89
+epoch:17 train loss:  0.162849 train accuracy:  0.94 test loss:  0.519155 val accuracy:   0.90
+epoch:18 train loss:  0.140146 train accuracy:  0.95 test loss:  0.438987 val accuracy:   0.91
+epoch:19 train loss:  0.181148 train accuracy:  0.94 test loss:  0.632207 val accuracy:   0.89
+epoch:20 train loss:  0.147942 train accuracy:  0.95 test loss:  0.480306 val accuracy:   0.91
+epoch:21 train loss:  0.167473 train accuracy:  0.94 test loss:  0.601657 val accuracy:   0.90
+epoch:22 train loss:  0.167379 train accuracy:  0.94 test loss:  0.358051 val accuracy:   0.90
+epoch:23 train loss:  0.157815 train accuracy:  0.94 test loss:  0.414857 val accuracy:   0.91
+epoch:24 train loss:  0.132570 train accuracy:  0.95 test loss:  0.862629 val accuracy:   0.89
+epoch:25 train loss:  0.158493 train accuracy:  0.94 test loss:  0.419029 val accuracy:   0.90
+epoch:26 train loss:  0.131236 train accuracy:  0.95 test loss:  0.690847 val accuracy:   0.90
+epoch:27 train loss:  0.145747 train accuracy:  0.95 test loss:  0.558139 val accuracy:   0.90
+epoch:28 train loss:  0.125395 train accuracy:  0.95 test loss:  0.695396 val accuracy:   0.89
+epoch:29 train loss:  0.140164 train accuracy:  0.95 test loss:  0.546501 val accuracy:   0.90
+epoch:30 train loss:  0.133647 train accuracy:  0.95 test loss:  0.346649 val accuracy:   0.92
+</code></pre></div></div>
+
+<h2 id="evaluating-the-model-1">Evaluating the model</h2>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#evaulation using best model
+</span><span class="n">model</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="s">'har2.pth'</span><span class="p">)</span>
+<span class="n">y_pred</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">y_true</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">model</span><span class="p">.</span><span class="nb">eval</span><span class="p">()</span>
+<span class="n">model</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">test_loss</span><span class="o">=</span><span class="mi">0</span>
+
+<span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">model</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">test_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+        <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">test_loss</span><span class="o">/=</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'log loss of test data: '</span><span class="p">,</span><span class="n">np</span><span class="p">.</span><span class="nb">round</span><span class="p">(</span><span class="n">test_loss</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'accuracy of test data:'</span><span class="p">,</span><span class="n">np</span><span class="p">.</span><span class="nb">round</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s">'LAYING'</span><span class="p">,</span><span class="s">'SITTING'</span><span class="p">,</span><span class="s">'STANDING'</span><span class="p">,</span><span class="s">'WALKING'</span><span class="p">,</span><span class="s">'WALKING_DOWNSTAIRS'</span><span class="p">,</span><span class="s">'WALKING_UPSTAIRS'</span><span class="p">]</span>
+<span class="n">cf</span><span class="o">=</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">7</span><span class="p">))</span>
+<span class="n">sns</span><span class="p">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">"Blues"</span><span class="p">,</span><span class="n">xticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span><span class="n">yticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s">'g'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">title</span><span class="p">(</span><span class="s">'confusion matrix'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'predicted'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'actual'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>log loss of test data:  0.3466
+accuracy of test data: 0.92
+</code></pre></div></div>
+
+<p><img src="/img/output_25_1.png" alt="png" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">print</span><span class="p">(</span><span class="n">classification_report</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">,</span><span class="n">target_names</span><span class="o">=</span><span class="n">labels</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                    precision    recall  f1-score   support
+
+            LAYING       0.96      1.00      0.98       496
+           SITTING       0.98      0.94      0.96       471
+          STANDING       0.95      0.96      0.95       420
+           WALKING       0.80      0.85      0.82       491
+WALKING_DOWNSTAIRS       0.85      0.81      0.83       532
+  WALKING_UPSTAIRS       1.00      1.00      1.00       537
+
+         micro avg       0.92      0.92      0.92      2947
+         macro avg       0.92      0.92      0.92      2947
+      weighted avg       0.92      0.92      0.92      2947
+</code></pre></div></div>
+
+<h1 id="building-lstm-model--3">Building LSTM Model -3</h1>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#model initialization
+</span><span class="n">hidden_size</span><span class="o">=</span><span class="mi">100</span>
+<span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span>
+<span class="n">drop_out</span><span class="o">=</span><span class="mf">0.7</span>
+<span class="n">net</span><span class="o">=</span><span class="n">Net</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span><span class="n">num_layers</span><span class="p">,</span><span class="n">drop_out</span><span class="p">)</span>
+<span class="n">net</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">lr</span><span class="o">=</span><span class="mf">0.005</span>
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="p">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="n">optim</span><span class="p">.</span><span class="n">RMSprop</span><span class="p">(</span><span class="n">net</span><span class="p">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">epochs</span><span class="o">=</span><span class="mi">30</span>
+<span class="n">best_accuracy</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">y_pred</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">y_true</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+    <span class="n">train_loss</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">val_loss</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">net</span><span class="p">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">y_true</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">net</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">net</span><span class="p">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">loss</span><span class="p">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="p">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="n">train_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span><span class="n">pred</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">train_loss</span><span class="o">=</span><span class="n">train_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+    <span class="n">train_accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+    <span class="n">net</span><span class="p">.</span><span class="nb">eval</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">y_true</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">hidden</span><span class="o">=</span><span class="n">net</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">val_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+            <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">val_loss</span><span class="o">=</span><span class="n">val_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+        <span class="n">val_accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">best_accuracy</span> <span class="o">&lt;</span> <span class="n">val_accuracy</span><span class="p">:</span>
+            <span class="n">torch</span><span class="p">.</span><span class="n">save</span><span class="p">(</span><span class="n">net</span><span class="p">,</span><span class="s">'har.pth'</span><span class="p">)</span>
+            <span class="n">best_accuracy</span><span class="o">=</span><span class="n">val_accuracy</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'epoch:{:2} train loss:{:10.6f} train accuracy:{:6.2f} test loss:{:10.6f} val accuracy: {:6.2f}'</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">train_loss</span><span class="p">,</span><span class="n">train_accuracy</span><span class="p">,</span><span class="n">val_loss</span><span class="p">,</span><span class="n">val_accuracy</span><span class="p">))</span>
+
+
+        
+    
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>epoch: 1 train loss:  1.533695 train accuracy:  0.33 test loss:  1.230509 val accuracy:   0.44
+epoch: 2 train loss:  1.166873 train accuracy:  0.49 test loss:  1.054517 val accuracy:   0.49
+epoch: 3 train loss:  0.775564 train accuracy:  0.62 test loss:  0.696310 val accuracy:   0.64
+epoch: 4 train loss:  0.766319 train accuracy:  0.64 test loss:  0.823017 val accuracy:   0.64
+epoch: 5 train loss:  0.576431 train accuracy:  0.77 test loss:  0.736326 val accuracy:   0.66
+epoch: 6 train loss:  0.468632 train accuracy:  0.82 test loss:  0.822014 val accuracy:   0.70
+epoch: 7 train loss:  0.328237 train accuracy:  0.88 test loss:  0.547394 val accuracy:   0.87
+epoch: 8 train loss:  0.277120 train accuracy:  0.91 test loss:  0.352074 val accuracy:   0.88
+epoch: 9 train loss:  0.442696 train accuracy:  0.85 test loss:  0.867937 val accuracy:   0.75
+epoch:10 train loss:  0.236122 train accuracy:  0.92 test loss:  0.315389 val accuracy:   0.89
+epoch:11 train loss:  0.210904 train accuracy:  0.93 test loss:  0.263256 val accuracy:   0.91
+epoch:12 train loss:  0.178389 train accuracy:  0.94 test loss:  0.309705 val accuracy:   0.90
+epoch:13 train loss:  0.170183 train accuracy:  0.94 test loss:  0.239857 val accuracy:   0.92
+epoch:14 train loss:  0.186672 train accuracy:  0.94 test loss:  0.264772 val accuracy:   0.90
+epoch:15 train loss:  0.214897 train accuracy:  0.92 test loss:  0.347654 val accuracy:   0.87
+epoch:16 train loss:  0.198619 train accuracy:  0.93 test loss:  0.679378 val accuracy:   0.86
+epoch:17 train loss:  0.163781 train accuracy:  0.94 test loss:  0.361680 val accuracy:   0.88
+epoch:18 train loss:  0.166087 train accuracy:  0.94 test loss:  0.263805 val accuracy:   0.91
+epoch:19 train loss:  0.149740 train accuracy:  0.94 test loss:  0.275406 val accuracy:   0.92
+epoch:20 train loss:  0.152222 train accuracy:  0.95 test loss:  0.246042 val accuracy:   0.92
+epoch:21 train loss:  0.134731 train accuracy:  0.95 test loss:  0.344771 val accuracy:   0.92
+epoch:22 train loss:  0.122899 train accuracy:  0.95 test loss:  0.351749 val accuracy:   0.92
+epoch:23 train loss:  0.205480 train accuracy:  0.94 test loss:  0.329955 val accuracy:   0.90
+epoch:24 train loss:  0.201547 train accuracy:  0.94 test loss:  0.291776 val accuracy:   0.91
+epoch:25 train loss:  0.155327 train accuracy:  0.94 test loss:  0.304316 val accuracy:   0.91
+epoch:26 train loss:  0.146998 train accuracy:  0.95 test loss:  0.425379 val accuracy:   0.93
+epoch:27 train loss:  0.143599 train accuracy:  0.95 test loss:  0.641150 val accuracy:   0.94
+epoch:28 train loss:  0.142398 train accuracy:  0.95 test loss:  0.397803 val accuracy:   0.91
+epoch:29 train loss:  0.123157 train accuracy:  0.95 test loss:  0.321939 val accuracy:   0.91
+epoch:30 train loss:  0.142609 train accuracy:  0.95 test loss:  0.380496 val accuracy:   0.92
+</code></pre></div></div>
+
+<h2 id="evaluating-the-model-2">Evaluating the model</h2>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#evaulation using best model
+</span><span class="n">net</span><span class="o">=</span><span class="n">torch</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="s">'har.pth'</span><span class="p">)</span>
+<span class="n">y_pred</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">y_true</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">net</span><span class="p">.</span><span class="nb">eval</span><span class="p">()</span>
+<span class="n">net</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">test_loss</span><span class="o">=</span><span class="mi">0</span>
+
+<span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">net</span><span class="p">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nb">float</span><span class="p">(),</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">criterion</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">test_loss</span><span class="o">+=</span><span class="n">loss</span><span class="p">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nb">max</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+        <span class="n">y_pred</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pred</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">y_true</span><span class="p">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">test_loss</span><span class="o">/=</span><span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'log loss of test data: '</span><span class="p">,</span><span class="n">np</span><span class="p">.</span><span class="nb">round</span><span class="p">(</span><span class="n">test_loss</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">accuracy</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'accuracy of test data:'</span><span class="p">,</span><span class="n">np</span><span class="p">.</span><span class="nb">round</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s">'LAYING'</span><span class="p">,</span><span class="s">'SITTING'</span><span class="p">,</span><span class="s">'STANDING'</span><span class="p">,</span><span class="s">'WALKING'</span><span class="p">,</span><span class="s">'WALKING_DOWNSTAIRS'</span><span class="p">,</span><span class="s">'WALKING_UPSTAIRS'</span><span class="p">]</span>
+<span class="n">cf</span><span class="o">=</span><span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">7</span><span class="p">))</span>
+<span class="n">sns</span><span class="p">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">"Blues"</span><span class="p">,</span><span class="n">xticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span><span class="n">yticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s">'g'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">title</span><span class="p">(</span><span class="s">'confusion matrix'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'predicted'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'actual'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>log loss of test data:  0.6412
+accuracy of test data: 0.94
+</code></pre></div></div>
+
+<p><img src="/img/output_31_1.png" alt="png" /></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">print</span><span class="p">(</span><span class="n">classification_report</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span><span class="n">y_pred</span><span class="p">,</span><span class="n">target_names</span><span class="o">=</span><span class="n">labels</span><span class="p">))</span>
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                    precision    recall  f1-score   support
+
+            LAYING       0.96      0.99      0.98       496
+           SITTING       0.94      0.96      0.95       471
+          STANDING       0.99      1.00      0.99       420
+           WALKING       0.89      0.83      0.86       491
+WALKING_DOWNSTAIRS       0.85      0.90      0.88       532
+  WALKING_UPSTAIRS       1.00      0.95      0.97       537
+
+         micro avg       0.94      0.94      0.94      2947
+         macro avg       0.94      0.94      0.94      2947
+      weighted avg       0.94      0.94      0.94      2947
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">prettytable</span> <span class="kn">import</span> <span class="n">PrettyTable</span>
+<span class="kn">import</span> <span class="nn">prettytable</span>
+<span class="n">x</span><span class="o">=</span><span class="n">PrettyTable</span><span class="p">()</span>
+<span class="n">x</span><span class="p">.</span><span class="n">hrules</span><span class="o">=</span><span class="n">prettytable</span><span class="p">.</span><span class="n">ALL</span>
+<span class="n">x</span><span class="p">.</span><span class="n">left_padding_width</span><span class="o">=</span><span class="mi">3</span>
+<span class="n">x</span><span class="p">.</span><span class="n">right_padding_width</span><span class="o">=</span><span class="mi">3</span>
+<span class="n">x</span><span class="p">.</span><span class="n">field_names</span><span class="o">=</span><span class="p">[</span><span class="s">'Model'</span><span class="p">,</span><span class="s">'no.layers'</span><span class="p">,</span><span class="s">'hidden_size'</span><span class="p">,</span><span class="s">'Accurarcy'</span><span class="p">]</span>
+<span class="n">x</span><span class="p">.</span><span class="n">add_row</span><span class="p">([</span><span class="s">'LSTM-1'</span><span class="p">,</span><span class="s">'1'</span><span class="p">,</span><span class="s">'32'</span><span class="p">,</span><span class="s">'90%'</span><span class="p">])</span>
+<span class="n">x</span><span class="p">.</span><span class="n">add_row</span><span class="p">([</span><span class="s">'LSTM-2'</span><span class="p">,</span><span class="s">'1'</span><span class="p">,</span><span class="s">'100'</span><span class="p">,</span><span class="s">'92%'</span><span class="p">])</span>
+<span class="n">x</span><span class="p">.</span><span class="n">add_row</span><span class="p">([</span><span class="s">'LSTM-3'</span><span class="p">,</span><span class="s">'2'</span><span class="p">,</span><span class="s">'100'</span><span class="p">,</span><span class="s">'94%'</span><span class="p">])</span>
+
+
+<span class="k">print</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+------------+---------------+-----------------+---------------+
+|   Model    |   no.layers   |   hidden_size   |   Accurarcy   |
++------------+---------------+-----------------+---------------+
+|   LSTM-1   |       1       |        32       |      90%      |
++------------+---------------+-----------------+---------------+
+|   LSTM-2   |       1       |       100       |      92%      |
++------------+---------------+-----------------+---------------+
+|   LSTM-3   |       2       |       100       |      94%      |
++------------+---------------+-----------------+---------------+
+</code></pre></div></div>
+
+<h1 id="summary">Summary</h1>
+
+<p><b> Step 1 :</b> &lt;p&gt;First step would be to understand the business problem well and the value proposition that we can make by solving this problem.Coming to this case study the goal is to classify the human activity using sensor data which inturns help the users to track their sleep,calories burnt etc.</p>
+
+<p>
+<b> Step 2:</b> <p> Next step is to load the data and and processing the data in a way that model can learn sequence information.</p>
+
+
+<b> Step 3:</b> <p> In this case study I am using LSTM architecture to build the models.In this stage we will try and experiment with differnet architectures to build the model.Initially I tried with 1 hidden layer and 32 hidden units which gave 90% accurcay.</p>
+
+
+<b> Step 4:</b> <p> In this stage I experimented with hidden layers to see whether increase in hidden units can help us to increase to the accuracy. With 100 hidden units I am able to get 92% accuracy.</p>
+
+
+<b> Step 5:</b> <p> In this stage I experimented with both num layers and hidden size. I am able to get 94% accuracy with 2 layers 100 hidden units.And also played around with dropout.</p>
+
+<b> Step 6:</b> <p> Further increasing in layers and hidden units lead into overfitting.In this stage I also played aroud with learning rate,optimizers,initializers.</p>
+</p>
+
+</div>
+  </main>
+
+  <footer class="mt-auto py-3 text-center">
+
+  <small class="text-muted mb-2">
+    <i class="fas fa-code"></i> with <i class="fas fa-heart"></i>
+    by <strong>Sathish</strong>
+  </small>
+
+  <div class="container-fluid justify-content-center"><a class="social mx-1"  href="mailto:gsathish8421@gmail.com"
+       style="color: #6c757d"
+       onMouseOver="this.style.color='#db4437'"
+       onMouseOut="this.style.color='#6c757d'">
+      <i class="fas fa-envelope fa-1x"></i>
+    </a><a class="social mx-1"  href="https://www.github.com/sathish333"
+       style="color: #6c757d"
+       onMouseOver="this.style.color='#333333'"
+       onMouseOut="this.style.color='#6c757d'">
+      <i class="fab fa-github fa-1x"></i>
+    </a><a class="social mx-1"  href="https://www.linkedin.com/in/sathish333"
+       style="color: #6c757d"
+       onMouseOver="this.style.color='#007bb5'"
+       onMouseOut="this.style.color='#6c757d'">
+      <i class="fab fa-linkedin-in fa-1x"></i>
+    </a>
+
+</div><small id="attribution">
+    theme <a href="https://github.com/YoussefRaafatNasry/portfolYOU">portfolYOU</a>
+  </small>
+  
+</footer>
+  
+  <!-- GitHub Buttons -->
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+
+<!-- jQuery CDN -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+<!-- Popper.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
+
+<!-- Bootstrap JS CDN -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<!-- wow.js CDN & Activation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.js"></script>
+<script> new WOW().init(); </script>
+
+<!-- Initialize all tooltips -->
+<script>
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+})
+</script>
+
+</body>
+
+</html>
